@@ -344,12 +344,12 @@ class CornersProblem(search.SearchProblem):
                         visited_corners + (next_position,)
                     )
 
-            successors.append(
-                (
-                    (next_position, new_visited_corners),
-                    action,
-                    1
-                )
+                successors.append(
+                    (
+                        (next_position, new_visited_corners),
+                        action,
+                        1
+                    )
             )
 
         self._expanded += 1 # DO NOT CHANGE
@@ -374,19 +374,40 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     A heuristic for the CornersProblem that you defined.
 
       state:   The current search state
-               (a data structure you chose in your search problem)
-
       problem: The CornersProblem instance for this layout.
 
-    This function should always return a number that is a lower bound on the
-    shortest path from the state to a goal of the problem; i.e.  it should be
-    admissible (as well as consistent).
+    This function should always return a number that is a lower bound
+    on the shortest path from the state to a goal of the problem.
     """
-    corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
+    corners = problem.corners
+    walls = problem.walls
 
-    "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    position, visited_corners = state
+
+    unvisited = [
+        corner
+        for corner in problem.corners
+        if corner not in visited_corners
+    ]
+
+    if not unvisited:
+        return 0
+
+    current = position
+    total = 0
+
+    while unvisited:
+        nearest = min(
+            unvisited,
+            key=lambda corner: util.manhattanDistance(current, corner)
+        )
+
+        total += util.manhattanDistance(current, nearest)
+
+        current = nearest
+        unvisited.remove(nearest)
+
+    return total
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
