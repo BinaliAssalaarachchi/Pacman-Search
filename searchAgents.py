@@ -296,14 +296,19 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        start_position = self.startingPosition
+        visited_corners = tuple()
+
+        return (start_position, visited_corners)
 
     def isGoalState(self, state: Any):
         """
         Returns whether this search state is a goal state of the problem.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        position, visited_corners = state
+
+        return len(visited_corners) == len(self.corners)
+
 
     def getSuccessors(self, state: Any):
         """
@@ -317,15 +322,35 @@ class CornersProblem(search.SearchProblem):
         """
 
         successors = []
-        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            # Add a successor state to the successor list if the action is legal
-            # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   x,y = currentPosition
-            #   dx, dy = Actions.directionToVector(action)
-            #   nextx, nexty = int(x + dx), int(y + dy)
-            #   hitsWall = self.walls[nextx][nexty]
 
-            "*** YOUR CODE HERE ***"
+        position, visited_corners = state
+        x, y = position
+
+        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            dx, dy = Actions.directionToVector(action)
+
+            nextx = int(x + dx)
+            nexty = int(y + dy)
+
+            if not self.walls[nextx][nexty]:
+                next_position = (nextx, nexty)
+                new_visited_corners = visited_corners
+
+                if (
+                    next_position in self.corners
+                    and next_position not in visited_corners
+                ):
+                    new_visited_corners = (
+                        visited_corners + (next_position,)
+                    )
+
+            successors.append(
+                (
+                    (next_position, new_visited_corners),
+                    action,
+                    1
+                )
+            )
 
         self._expanded += 1 # DO NOT CHANGE
         return successors
