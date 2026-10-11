@@ -500,8 +500,55 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     problem.heuristicInfo['wallCount']
     """
     position, foodGrid = state
-    "*** YOUR CODE HERE ***"
-    return 0
+    food_list = foodGrid.asList()
+
+    if not food_list:
+        return 0
+
+    # Cache Manhattan distances between food locations.
+    distance_cache = problem.heuristicInfo.setdefault(
+        'foodDistances', {}
+    )
+
+    def distance(point1, point2):
+        key = tuple(sorted((point1, point2)))
+        if key not in distance_cache:
+            distance_cache[key] = util.manhattanDistance(
+                point1, point2
+            )
+        return distance_cache[key]
+
+    # Minimum distance from Pacman to any remaining food.
+    nearest_food = min(
+        distance(position, food)
+        for food in food_list
+    )
+
+    # Calculate the minimum spanning tree cost of remaining food.
+    unconnected = set(food_list)
+    first_food = next(iter(unconnected))
+    unconnected.remove(first_food)
+    connected = {first_food}
+    mst_cost = 0
+
+    while unconnected:
+        best_distance = float('inf')
+        best_food = None
+
+        for connected_food in connected:
+            for candidate in unconnected:
+                current_distance = distance(
+                    connected_food, candidate
+                )
+                if current_distance < best_distance:
+                    best_distance = current_distance
+                    best_food = candidate
+
+        mst_cost += best_distance
+        connected.add(best_food)
+        unconnected.remove(best_food)
+
+    return nearest_food + mst_cost
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
