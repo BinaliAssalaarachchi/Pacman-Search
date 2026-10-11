@@ -344,12 +344,12 @@ class CornersProblem(search.SearchProblem):
                         visited_corners + (next_position,)
                     )
 
-            successors.append(
-                (
-                    (next_position, new_visited_corners),
-                    action,
-                    1
-                )
+                successors.append(
+                    (
+                        (next_position, new_visited_corners),
+                        action,
+                        1
+                    )
             )
 
         self._expanded += 1 # DO NOT CHANGE
@@ -374,19 +374,40 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     A heuristic for the CornersProblem that you defined.
 
       state:   The current search state
-               (a data structure you chose in your search problem)
-
       problem: The CornersProblem instance for this layout.
 
-    This function should always return a number that is a lower bound on the
-    shortest path from the state to a goal of the problem; i.e.  it should be
-    admissible (as well as consistent).
+    This function should always return a number that is a lower bound
+    on the shortest path from the state to a goal of the problem.
     """
-    corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
+    corners = problem.corners
+    walls = problem.walls
 
-    "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    position, visited_corners = state
+
+    unvisited = [
+        corner
+        for corner in problem.corners
+        if corner not in visited_corners
+    ]
+
+    if not unvisited:
+        return 0
+
+    current = position
+    total = 0
+
+    while unvisited:
+        nearest = min(
+            unvisited,
+            key=lambda corner: util.manhattanDistance(current, corner)
+        )
+
+        total += util.manhattanDistance(current, nearest)
+
+        current = nearest
+        unvisited.remove(nearest)
+
+    return total
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -479,8 +500,55 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     problem.heuristicInfo['wallCount']
     """
     position, foodGrid = state
-    "*** YOUR CODE HERE ***"
-    return 0
+    food_list = foodGrid.asList()
+
+    if not food_list:
+        return 0
+
+    # Cache Manhattan distances between food locations.
+    distance_cache = problem.heuristicInfo.setdefault(
+        'foodDistances', {}
+    )
+
+    def distance(point1, point2):
+        key = tuple(sorted((point1, point2)))
+        if key not in distance_cache:
+            distance_cache[key] = util.manhattanDistance(
+                point1, point2
+            )
+        return distance_cache[key]
+
+    # Minimum distance from Pacman to any remaining food.
+    nearest_food = min(
+        distance(position, food)
+        for food in food_list
+    )
+
+    # Calculate the minimum spanning tree cost of remaining food.
+    unconnected = set(food_list)
+    first_food = next(iter(unconnected))
+    unconnected.remove(first_food)
+    connected = {first_food}
+    mst_cost = 0
+
+    while unconnected:
+        best_distance = float('inf')
+        best_food = None
+
+        for connected_food in connected:
+            for candidate in unconnected:
+                current_distance = distance(
+                    connected_food, candidate
+                )
+                if current_distance < best_distance:
+                    best_distance = current_distance
+                    best_food = candidate
+
+        mst_cost += best_distance
+        connected.add(best_food)
+        unconnected.remove(best_food)
+
+    return nearest_food + mst_cost
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
